@@ -1,4 +1,3 @@
-# process_referrals.py
 import os
 import pandas as pd
 import numpy as np
@@ -10,7 +9,6 @@ DATA_DIR = Path("data")
 OUTPUT_DIR = Path("output")
 OUTPUT_DIR.mkdir(exist_ok=True)
 
-# === Utility Functions ===
 def read_csv(name):
     path = DATA_DIR / name
     if not path.exists():
@@ -50,7 +48,7 @@ def utc_to_local(ts, tz_name):
     except Exception:
         return pd.NaT
 
-# === Load CSV Files ===
+# Load CSV Files 
 lead_log = read_csv("lead_log.csv")
 paid_transactions = read_csv("paid_transactions.csv")
 referral_rewards = read_csv("referral_rewards.csv")
@@ -59,7 +57,7 @@ user_referral_logs = read_csv("user_referral_logs.csv")
 user_referral_statuses = read_csv("user_referral_statuses.csv")
 user_referrals = read_csv("user_referrals.csv")
 
-# === Profiling ===
+# Profiling 
 profiles = []
 for df, name in [
     (lead_log, "lead_log"),
@@ -77,7 +75,7 @@ if profiles:
     pd.concat(profiles, ignore_index=True).to_csv(OUTPUT_DIR/"profiling_report.csv", index=False)
     print("📊 profiling_report.csv generated")
 
-# === Data Cleaning ===
+# Data Cleaning 
 # Apply initcap on names (except homeclub)
 for df in [user_referrals, user_logs]:
     for col in df.columns:
@@ -88,13 +86,13 @@ for df in [user_referrals, user_logs]:
 if 'reward_value' in referral_rewards.columns:
     referral_rewards['reward_value'] = pd.to_numeric(referral_rewards['reward_value'], errors='coerce')
 
-# === Timezone Conversion Example ===
+# Timezone Conversion Example
 if 'transaction_at' in paid_transactions.columns and 'timezone_transaction' in paid_transactions.columns:
     paid_transactions['transaction_at_local'] = paid_transactions.apply(
         lambda r: utc_to_local(r['transaction_at'], r['timezone_transaction']), axis=1
     )
 
-# === Join Tables ===
+# Join Tables
 df = user_referrals.copy()
 
 # Merge referral logs (latest per referral)
@@ -120,7 +118,7 @@ if not user_logs.empty and 'user_id' in user_logs.columns:
     })[['referrer_id', 'referrer_name', 'referrer_phone_number', 'referrer_homeclub']]
     df = df.merge(ref, how='left', on='referrer_id')
 
-# === Business Logic: is_business_logic_valid ===
+# Business Logic: is_business_logic_valid
 def check_valid(row):
     reward_val = row.get('reward_value')
     status = str(row.get('description','')).lower()
@@ -152,7 +150,7 @@ def check_valid(row):
 
 df['is_business_logic_valid'] = df.apply(check_valid, axis=1)
 
-# === Final Columns ===
+# Final Columns
 cols = [
     'referral_id','referral_source','referral_at','referrer_id','referrer_name',
     'referee_id','description','transaction_id','transaction_status','transaction_at',
